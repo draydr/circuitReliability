@@ -14,6 +14,7 @@
 // method stubs
 void parallelTesting(int* myCircuits, int numCircuits, double* startTime, double* stopTime);
 void serialTesting(int* myCircuits, int numCircuits, double* startTime, double* stopTime);
+void altParallel(int* myCircuits, int numCircuits, double* startTime, double* stopTime);
 
 //Global Variables
 const int NUM_RUNS = 1 << 28;   //run 256 million times
@@ -54,6 +55,7 @@ int main() {
     printf("\nnumber of tests:");
     printf("\tnumber of successes:");
     printf("\tpercent correct:\n");
+
     serialTesting(myCircuits, numCircuits, &startTime, &stopTime);
     printf("Time it took to run: %.3f", stopTime - startTime);
 
@@ -69,9 +71,19 @@ int main() {
     printf("\nnumber of tests:");
     printf("\tnumber of successes:");
     printf("\tpercent correct:\n");
+
     parallelTesting(myCircuits, numCircuits, &startTime, &stopTime);
     printf("Time it took to run: %.3f", stopTime - startTime);
 
+
+    printf("\nAlt parallel version:\n\n");
+    //headers
+    printf("\nnumber of tests:");
+    printf("\tnumber of successes:");
+    printf("\tpercent correct:\n");
+
+    altParallel(myCircuits, numCircuits, &startTime, &stopTime);
+    printf("Time it took to run: %.3f", stopTime - startTime);
 
 
 
@@ -100,7 +112,7 @@ shared(timeOfDay)
         int myStart = 16 * (1 + myID);
         srand(timeOfDay + myID);   //seeds random generator
 
-        for (numTests = myStart; numTests <= NUM_RUNS; numTests *= 4) {
+        for (numTests = myStart; numTests < NUM_RUNS; numTests *= 4) {
             numSucc = 0;
             for (curTest = 0; curTest < numTests; curTest++) {
                 
@@ -125,7 +137,51 @@ shared(timeOfDay)
 
 }
 
+void altParallel(int* myCircuits, int numCircuits, double* startTime, double* stopTime) {
+    
+    int numTests, curTest, i;   //loop variables
+    int numSucc;    //number of fails
+    srand(time(NULL));   //seeds random generator
 
+    *startTime = omp_get_wtime();
+    //for loop to do each iteration of tests (16,32,etc)
+    for (numTests = 16; numTests < NUM_RUNS; numTests *= 2) {
+        numSucc = 0;
+        /*following your videos instructions didnt work for randomizing
+        the inner for loops values (went back to values from previous
+        time entering the loop. instead I made a random variable to
+        seed each of the randoms inside the inner loop*/
+        int a = rand(); 
+#pragma omp parallel num_threads(2) //create team of threads
+        {
+            int myID = omp_get_thread_num();    //which one
+            int numThreads = omp_get_num_threads(); //how many
+            //divides each section of the system into parts to check
+            int section1, section2, section3, section4;
+
+            srand(a + myID);   //seeds random generator
+#pragma omp for reduction(+:numSucc)
+            //parallel for loop for testinf numTests times
+            for (curTest = 0; curTest < numTests; curTest++) {
+                section1 = myCircuits[0] > (rand() % 100);
+                section2 = myCircuits[1] > (rand() % 100) ||
+                    myCircuits[2] > (rand() % 100);
+
+                section3 = myCircuits[3] > (rand() % 100) ||
+                    myCircuits[4] > (rand() % 100);
+                section4 = myCircuits[5] > (rand() % 100) ||
+                    myCircuits[6] > (rand() % 100);
+                if ((section1 && section2) || (section3 && section4)) {
+                    numSucc++;
+                }
+            }
+        }
+        //print out results for each group of tests
+        printf("%10d %22d %28f\n", numTests, numSucc,
+            double(numSucc) / numTests);
+    }
+    *stopTime = omp_get_wtime();    //stop time
+}
 
 void serialTesting(int* myCircuits, int numCircuits, double* startTime, double* stopTime) {
     //divides each section of the system into different parts to check
@@ -135,7 +191,7 @@ void serialTesting(int* myCircuits, int numCircuits, double* startTime, double* 
 
     numTests = 16;
     *startTime = omp_get_wtime();
-    while (numTests <= NUM_RUNS) {
+    while (numTests < NUM_RUNS) {
         numSucc = 0;
         curTest = 0;
         while (curTest < numTests) {
