@@ -13,11 +13,9 @@
 #include<time.h>
 
 // method stubs
-void parallelTesting(int* myCircuits, int numCircuits, 
+void parallelTesting(int* myCircuits, 
     double* startTime, double* stopTime);
-void serialTesting(int* myCircuits, int numCircuits,
-    double* startTime, double* stopTime);
-void altParallel(int* myCircuits, int numCircuits, 
+void serialTesting(int* myCircuits,
     double* startTime, double* stopTime);
 
 //Global Variables
@@ -26,7 +24,6 @@ const int NUM_THREADS = 2;      //number of threads for parallel section
 
 int main() {
     //variable dictionary:
-    const int numCircuits = 7;  //number of circuits
     //array of probabilities (for each circuit succeeding)
     int myCircuits[] = {98,92,89,91,93,88,90};
     double serialTime, parallelTime;    //time each testing type took
@@ -51,7 +48,7 @@ int main() {
     }
 
     //run the serial testing function
-    serialTesting(myCircuits, numCircuits, &startTime, &stopTime);
+    serialTesting(myCircuits, &startTime, &stopTime);
 
     //get time testing took
     serialTime = stopTime - startTime;
@@ -66,7 +63,7 @@ int main() {
     printf("\tpercent correct:\n");
 
     //run the parallel testing function
-    parallelTesting(myCircuits, numCircuits, &startTime, &stopTime);
+    parallelTesting(myCircuits, &startTime, &stopTime);
 
     //print parallel testing time
     parallelTime = stopTime - startTime;
@@ -91,15 +88,13 @@ int main() {
 *           number of circuits, and the pointers to the stop and start 
 *           time variables which are used in main for timing
 ************************************************************************/
-void parallelTesting(int* myCircuits, int numCircuits, 
-    double* startTime, double* stopTime) {
+void parallelTesting(int* myCircuits, double* startTime, 
+    double* stopTime) {
     
     int numTests, curTest, i;   //loop variables
     int numSucc;    //number of successes
     //divides each section of the system into parts to check
     int section1, section2, section3, section4;
-
-    //srand(time(NULL));   //seeds random generator
 
     *startTime = omp_get_wtime();
     //for loop to do each iteration of tests (16,32,etc)
@@ -154,14 +149,12 @@ private(curTest, section1, section2, section3, section4)
 *           number of circuits, and the pointers to the stop and start
 *           time variables which are used in main for timing
 ************************************************************************/
-void serialTesting(int* myCircuits, int numCircuits, 
+void serialTesting(int* myCircuits, 
     double* startTime, double* stopTime) {
     //divides each section of the system into different parts to check
     int section1, section2, section3, section4;
     int numTests, curTest, i;   //loop variables
     int numSucc;    //number of successes
-
-    srand(time(NULL));
 
     *startTime = omp_get_wtime();   //start timing
     for (numTests = 16; numTests <= NUM_RUNS; numTests*=2) {
@@ -192,57 +185,4 @@ void serialTesting(int* myCircuits, int numCircuits,
             double(numSucc) / numTests);    
     }
     *stopTime = omp_get_wtime();    //stop timing
-}
-
-
-
-
-
-
-
-
-
-
-
-
-void altParallel(int* myCircuits, int numCircuits, double* startTime, double* stopTime) {
-    unsigned int timeOfDay = time(NULL);
-
-    *startTime = omp_get_wtime();
-#pragma omp parallel num_threads(NUM_THREADS) \
-shared(timeOfDay)
-    {
-        unsigned int timeOfDay = time(NULL);
-        //divides each section of the system into different parts to check
-        int section1, section2, section3, section4;
-        int numTests, curTest, i;   //loop variables
-        int numSucc;    //number of successes
-        int myID = omp_get_thread_num();
-        int numThreads = omp_get_num_threads();
-        int myStart = 16 * (1 + myID);
-        srand(timeOfDay + myID);   //seeds random generator
-
-        for (numTests = myStart; numTests < NUM_RUNS; numTests *= 4) {
-            numSucc = 0;
-            for (curTest = 0; curTest < numTests; curTest++) {
-
-                section1 = myCircuits[0] > (rand() % 100);
-                section2 = myCircuits[1] > (rand() % 100) ||
-                    myCircuits[2] > (rand() % 100);
-
-                section3 = myCircuits[3] > (rand() % 100) ||
-                    myCircuits[4] > (rand() % 100);
-                section4 = myCircuits[5] > (rand() % 100) ||
-                    myCircuits[6] > (rand() % 100);
-                if ((section1 && section2) || (section3 && section4)) {
-                    numSucc++;
-                }
-            }
-            printf("%10d %22d %28f\n", numTests, numSucc,
-                double(numSucc) / numTests);
-        }
-    }
-    *stopTime = omp_get_wtime();
-
-
 }
