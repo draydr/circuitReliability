@@ -7,7 +7,7 @@
 
 #define _CRT_SECURE_NO_WARNINGS //iso standard is good for us
 //include statements
-#include<stdio.h> 
+#include<stdio.h>
 #include<stdlib.h>
 #include<omp.h>
 #include<time.h>
@@ -15,7 +15,7 @@
 // method stubs
 void parallelTesting(int* myCircuits, int numCircuits, 
     double* startTime, double* stopTime);
-void serialTesting(int* myCircuits, int numCircuits, 
+void serialTesting(int* myCircuits, int numCircuits,
     double* startTime, double* stopTime);
 void altParallel(int* myCircuits, int numCircuits, 
     double* startTime, double* stopTime);
@@ -44,6 +44,7 @@ int main() {
     printf("\tnumber of successes:");
     printf("\tpercent correct:\n");
 
+    //seed random number generator for each thread
 #pragma omp parallel num_threads(NUM_THREADS)
     {
         srand((unsigned int)time(NULL) + omp_get_thread_num());
